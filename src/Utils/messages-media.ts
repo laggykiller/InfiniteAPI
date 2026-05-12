@@ -37,14 +37,16 @@ const getTmpFilesDirectory = () => tmpdir()
  * @returns Object with sharp or jimp property, or throws if neither available
  */
 export const getImageProcessingLibrary = async () => {
-	//@ts-ignore
+	// @ts-ignore
 	const [jimp, sharp] = await Promise.all([import('jimp').catch(() => {}), import('sharp').catch(() => {})])
 
-	if (sharp) {
+	// @ts-ignore
+	if (sharp && typeof sharp.default === 'function') {
 		return { sharp }
 	}
 
-	if (jimp) {
+	// @ts-ignore
+	if (jimp && typeof jimp.Jimp === 'function') {
 		return { jimp }
 	}
 
@@ -148,7 +150,8 @@ export const extractImageThumb = async (bufferOrFilePath: Readable | Buffer | st
 	}
 
 	const lib = await getImageProcessingLibrary()
-	if ('sharp' in lib && typeof lib.sharp?.default === 'function') {
+	if ('sharp' in lib) {
+		// @ts-ignore
 		const img = lib.sharp.default(bufferOrFilePath)
 		const dimensions = await img.metadata()
 
@@ -160,7 +163,7 @@ export const extractImageThumb = async (bufferOrFilePath: Readable | Buffer | st
 				height: dimensions.height
 			}
 		}
-	} else if ('jimp' in lib && typeof lib.jimp?.Jimp === 'function') {
+	} else if ('jimp' in lib) {
 		const jimp = await (lib.jimp.Jimp as any).read(bufferOrFilePath)
 		const dimensions = {
 			width: jimp.width,
@@ -200,7 +203,8 @@ export const generateProfilePicture = async (
 
 	const lib = await getImageProcessingLibrary()
 	let img: Promise<Buffer>
-	if ('sharp' in lib && typeof lib.sharp?.default === 'function') {
+	if ('sharp' in lib) {
+		// @ts-ignore
 		img = lib.sharp
 			.default(buffer)
 			.resize(w, h)
@@ -208,10 +212,10 @@ export const generateProfilePicture = async (
 				quality: 50
 			})
 			.toBuffer()
-	} else if ('jimp' in lib && typeof lib.jimp?.Jimp === 'function') {
+	} else if ('jimp' in lib) {
 		const jimp = await (lib.jimp.Jimp as any).read(buffer)
 		const min = Math.min(jimp.width, jimp.height)
-		const cropped = jimp.crop({ x: 0, y: 0, w: min, h: min })
+		const cropped = await jimp.crop({ x: 0, y: 0, w: min, h: min })
 
 		img = cropped.resize({ w, h, mode: lib.jimp.ResizeStrategy.BILINEAR }).getBuffer('image/jpeg', { quality: 50 })
 	} else {
@@ -595,6 +599,7 @@ export const downloadEncryptedContent = async (
 
 	let remainingBytes = Buffer.from([])
 
+	// @ts-ignore
 	let aes: Crypto.Decipher
 
 	const pushBytes = (bytes: Buffer, push: (bytes: Buffer) => void) => {

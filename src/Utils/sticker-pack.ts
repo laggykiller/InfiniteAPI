@@ -35,6 +35,15 @@ export const isWebPBuffer = (buffer: Buffer): boolean => {
 	return riffHeader === 'RIFF' && webpHeader === 'WEBP'
 }
 
+export const isPNGBuffer = (buffer: Buffer): boolean => {
+	if (buffer.length < 8) return false
+
+	// Verifica magic bytes
+	const pngHeader = buffer.toString('ascii', 0, 8)
+
+	return pngHeader === '\x89PNG\r\n\x1a\n'
+}
+
 /**
  * Detecta se um WebP é animado através da análise de chunks
  *
@@ -182,7 +191,8 @@ const convertToWebP = async (
 	// Tenta usar Sharp para converter
 	const lib = await getImageProcessingLibrary()
 
-	if (!lib?.sharp) {
+	// @ts-ignore
+	if (!'sharp' in lib) {
 		throw new Boom(
 			'Sharp library is required to convert non-WebP images to WebP format. Install with: yarn add sharp',
 			{ statusCode: 400 }
@@ -190,6 +200,7 @@ const convertToWebP = async (
 	}
 
 	logger?.trace('Converting image to WebP using Sharp')
+	// @ts-ignore
 	const webpBuffer = await lib.sharp.default(buffer).webp().toBuffer()
 
 	return { webpBuffer, isAnimated: false, isLottie: false }
@@ -538,13 +549,15 @@ export const prepareStickerPackMessage = async (
 				// WABA: Enforce 512x512 dimensions for WebP stickers (Lottie is vector, skip)
 				if (!isLottie && isWebPBuffer(webpBuffer)) {
 					const lib = await getImageProcessingLibrary()
-					if (lib?.sharp) {
+					if ('sharp' in lib) {
+						// @ts-ignore
 						const metadata = await lib.sharp.default(webpBuffer).metadata()
 						if (metadata.width !== 512 || metadata.height !== 512) {
 							logger?.trace(
 								{ index: i, width: metadata.width, height: metadata.height },
 								'Resizing sticker to 512x512 (WABA standard)'
 							)
+							// @ts-ignore
 							webpBuffer = await lib.sharp
 								.default(webpBuffer)
 								.resize(512, 512, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } })
@@ -566,9 +579,10 @@ export const prepareStickerPackMessage = async (
 
 					const lib = await getImageProcessingLibrary()
 
-					if (lib?.sharp) {
+					if ('sharp' in lib) {
 						// Try quality 70
 						try {
+							// @ts-ignore
 							const compressed70 = await lib.sharp.default(webpBuffer).webp({ quality: 70 }).toBuffer()
 
 							// eslint-disable-next-line max-depth
@@ -584,6 +598,7 @@ export const prepareStickerPackMessage = async (
 								)
 							} else {
 								// Try quality 50
+								// @ts-ignore
 								const compressed50 = await lib.sharp.default(webpBuffer).webp({ quality: 50 }).toBuffer()
 
 								// eslint-disable-next-line max-depth
@@ -718,30 +733,35 @@ export const prepareStickerPackMessage = async (
 	// 4. Processa cover image (tray icon)
 	// SECURITY FIX #8: Error context for cover processing
 	let coverBuffer: Buffer
-	let coverWebP: Buffer
+	let coverPNG: Buffer
 	let coverFileName: string
 
 	try {
 		logger?.trace('Processing cover image')
 		coverBuffer = await mediaToBuffer(cover, 'cover image')
-
-		// Tray icon uses PNG format, 96x96 pixels (official client standard)
 		const lib = await getImageProcessingLibrary()
-		if (!lib?.sharp) {
+
+		if ('sharp' in lib) {
+			// @ts-ignore
+			coverPNG = await lib.sharp
+				.default(coverBuffer)
+				.resize(96, 96, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } })
+				.png()
+				.toBuffer()
+		} else if ('jimp' in lib) {
+			const jimp = await (lib.jimp.Jimp as any).read(coverBuffer)
+			coverPNG = await jimp
+				.contain({ w: 96, h: 96, mode: lib.jimp.ResizeStrategy.BILINEAR })
+				.getBuffer('image/png')
+		} else {
 			throw new Boom(
-				'Sharp library is required for cover/tray icon processing. Install with: yarn add sharp',
+				'No image processing library available',
 				{ statusCode: 400 }
 			)
 		}
 
-		coverWebP = await lib.sharp
-			.default(coverBuffer)
-			.resize(96, 96, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } })
-			.png()
-			.toBuffer()
-
 		coverFileName = `${stickerPackId}.png`
-		stickerData[coverFileName] = [new Uint8Array(coverWebP), { level: 0 as 0 }]
+		stickerData[coverFileName] = [new Uint8Array(coverPNG), { level: 0 as 0 }]
 	} catch (error) {
 		throw new Boom(`Failed to process cover image: ${(error as Error).message}`, {
 			statusCode: error instanceof Boom ? error.output.statusCode : 500,
@@ -801,17 +821,21 @@ export const prepareStickerPackMessage = async (
 		logger?.trace('Generating thumbnail (252x252 JPEG)')
 		const lib = await getImageProcessingLibrary()
 
-		if (!lib?.sharp) {
-			throw new Boom('Sharp library is required for thumbnail generation. Install with: yarn add sharp', {
-				statusCode: 400
-			})
+		if ('sharp' in lib) {
+			// @ts-ignore
+			thumbnailBuffer = await lib.sharp
+				.default(coverBuffer)
+				.resize(252, 252, { fit: 'cover', position: 'center' })
+				.jpeg({ quality: 85 })
+				.toBuffer()
+		} else if ('jimp' in lib) {
+			const jimp = await (lib.jimp.Jimp as any).read(coverBuffer)
+			thumbnailBuffer = await jimp
+				.cover({ w: 252, h: 252, mode: lib.jimp.ResizeStrategy.BILINEAR })
+				.getBuffer('image/jpeg', { quality: 85 })
+		} else {
+			throw new Boom('No image processing library available')
 		}
-
-		thumbnailBuffer = await lib.sharp
-			.default(coverBuffer)
-			.resize(252, 252, { fit: 'cover', position: 'center' })
-			.jpeg({ quality: 85 })
-			.toBuffer()
 
 		logger?.trace({ thumbnailSizeKB: (thumbnailBuffer.length / 1024).toFixed(2) }, 'Thumbnail generated')
 	} catch (error) {
