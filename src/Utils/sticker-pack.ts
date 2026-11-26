@@ -34,6 +34,15 @@ export const isWebPBuffer = (buffer: Buffer): boolean => {
 	return riffHeader === 'RIFF' && webpHeader === 'WEBP'
 }
 
+export const isPNGBuffer = (buffer: Buffer): boolean => {
+	if (buffer.length < 8) return false
+
+	// Verifica magic bytes
+	const pngHeader = buffer.toString('ascii', 0, 8)
+
+	return pngHeader === '\x89PNG\r\n\x1a\n'
+}
+
 /**
  * Detecta se um WebP é animado através da análise de chunks
  *
