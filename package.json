@@ -44,6 +44,7 @@
 	"dependencies": {
 		"@cacheable/node-cache": "^2.0.1",
 		"@hapi/boom": "^10.0.1",
+		"@roamhq/wrtc": "^0.10.0",
 		"async-mutex": "^0.5.0",
 		"fflate": "^0.8.2",
 		"libsignal": "^6.0.0",
@@ -66,7 +67,7 @@
 		"@typescript-eslint/eslint-plugin": "^8.55.0",
 		"@typescript-eslint/parser": "^8.55.0",
 		"@whiskeysockets/eslint-config": "^1.0.0",
-		"better-sqlite3": "^11.0.0",
+		"better-sqlite3": "^13.0.0",
 		"conventional-changelog": "^7.1.1",
 		"conventional-changelog-angular": "^8.0.0",
 		"esbuild-register": "^3.6.0",
