@@ -2381,15 +2381,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/better-sqlite3@npm:^7.6.13":
-  version: 7.6.13
-  resolution: "@types/better-sqlite3@npm:7.6.13"
-  dependencies:
-    "@types/node": "npm:*"
-  checksum: 10c0/c4336e7b92343eb0e988ded007c53fa9887b98a38d61175226e86124a1a2c28b1a4e3892873c5041e350b7bfa2901f85c82db1542c4f0eed1d3a899682c92106
-  languageName: node
-  linkType: hard
-
 "@types/estree@npm:^1.0.6":
   version: 1.0.11
   resolution: "@types/estree@npm:1.0.11"
@@ -3113,7 +3104,6 @@ __metadata:
     "@eslint/js": "npm:^9.31.0"
     "@hapi/boom": "npm:^10.0.1"
     "@roamhq/wrtc": "npm:^0.10.0"
-    "@types/better-sqlite3": "npm:^7.6.13"
     "@types/jest": "npm:^30.0.0"
     "@types/node": "npm:^20.19.33"
     "@types/ws": "npm:^8.0.0"
@@ -3121,7 +3111,6 @@ __metadata:
     "@typescript-eslint/parser": "npm:^8.55.0"
     "@whiskeysockets/eslint-config": "npm:^1.0.0"
     async-mutex: "npm:^0.5.0"
-    better-sqlite3: "npm:^13.0.0"
     conventional-changelog: "npm:^7.1.1"
     conventional-changelog-angular: "npm:^8.0.0"
     esbuild-register: "npm:^3.6.0"
@@ -3212,16 +3201,6 @@ __metadata:
   version: 4.0.0
   resolution: "before-after-hook@npm:4.0.0"
   checksum: 10c0/9f8ae8d1b06142bcfb9ef6625226b5e50348bb11210f266660eddcf9734e0db6f9afc4cb48397ee3f5ac0a3728f3ae401cdeea88413f7bed748a71db84657be2
-  languageName: node
-  linkType: hard
-
-"better-sqlite3@npm:^13.0.0":
-  version: 13.2.0
-  resolution: "better-sqlite3@npm:13.2.0"
-  dependencies:
-    node-addon-api: "npm:^8.0.0"
-    node-gyp: "npm:latest"
-  checksum: 10c0/b1073206f9fcc73ff31300c90805a71ade2b93b5c43cc2db7117f3f3decd82c9991018f8ffbe58f57310b6b037bb4a6d0986b32e5c3b1266be71410e8fa148ad
   languageName: node
   linkType: hard
 
@@ -6374,15 +6353,6 @@ __metadata:
   dependencies:
     node-gyp: "npm:latest"
   checksum: 10c0/fb32a206276d608037fa1bcd7e9921e177fe992fc610d098aa3128baca3c0050fc1e014fa007e9b3874cf865ddb4f5bd9f43ccb7cbbbe4efaff6a83e920b17e9
-  languageName: node
-  linkType: hard
-
-"node-addon-api@npm:^8.0.0":
-  version: 8.9.2
-  resolution: "node-addon-api@npm:8.9.2"
-  dependencies:
-    node-gyp: "npm:latest"
-  checksum: 10c0/5cf5231e0da22b22862e6b593982a0e390ca89d022a9ac666c83deceecf20378cb8afe47c456ac1a58a9f62ef60099c950aec05814a287fdfd751d9d154fb12d
   languageName: node
   linkType: hard
 
