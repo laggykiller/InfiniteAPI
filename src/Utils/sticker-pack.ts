@@ -2,7 +2,6 @@ import { Boom } from '@hapi/boom'
 import { createHash } from 'crypto'
 import { zipSync } from 'fflate'
 import { promises as fs } from 'fs'
-import { gunzipSync, gzipSync } from 'zlib'
 import { proto } from '../../WAProto/index.js'
 import type { MediaType } from '../Defaults/index.js'
 import type { StickerPack, WAMediaUpload, WAMediaUploadFunction } from '../Types/Message.js'
@@ -102,47 +101,12 @@ export const isAnimatedWebP = (buffer: Buffer): boolean => {
 	return false
 }
 
-/**
- * Detecta se um buffer é Lottie JSON (raw ou gzip-compressed/WAS)
- *
- * WABA usa mimetype `application/was` para stickers Lottie.
- * WAS (WhatsApp Animated Sticker) = gzip-compressed Lottie JSON.
- *
- * Detecção:
- * - Gzip (0x1f 0x8b): descomprime e verifica se é Lottie JSON
- * - JSON bruto: verifica campos Lottie obrigatórios (v, ip, op, layers)
- *
- * @param buffer - Buffer to check
- * @returns true if buffer is Lottie/WAS format
- */
-export const isLottieBuffer = (buffer: Buffer): boolean => {
-	if (buffer.length < 2) return false
-
-	let jsonBuffer: Buffer
-
-	// Check if gzip-compressed (WAS format)
-	if (buffer[0] === 0x1f && buffer[1] === 0x8b) {
-		try {
-			// SECURITY: Limit decompressed output to 50MB to prevent decompression bombs
-			jsonBuffer = gunzipSync(buffer, { maxOutputLength: 50 * 1024 * 1024 }) as Buffer
-		} catch {
-			return false
-		}
-	} else if (buffer[0] === 0x7b) {
-		// Starts with '{' - could be raw Lottie JSON
-		jsonBuffer = buffer
-	} else {
-		return false
+export const isWasBuffer = (buffer: Buffer): boolean => {
+	if (buffer.length < 4) return false
+	if (buffer[0] === 0x50 && buffer[1] === 0x4b && buffer[2] === 0x03 && buffer[3] === 0x04) {
+		return true
 	}
-
-	// Validate Lottie JSON structure: must have v, ip, op, AND layers
-	try {
-		const str = jsonBuffer.toString('utf8', 0, Math.min(jsonBuffer.length, 4096))
-		// Quick check for ALL required Lottie fields
-		return str.includes('"v"') && str.includes('"layers"') && str.includes('"ip"') && str.includes('"op"')
-	} catch {
-		return false
-	}
+	return false
 }
 
 /**
@@ -159,17 +123,9 @@ const convertToWebP = async (
 	buffer: Buffer,
 	logger?: ILogger
 ): Promise<{ webpBuffer: Buffer; isAnimated: boolean; isLottie: boolean }> => {
-	// Lottie/WAS: ensure gzip-compressed format (WAS = gzip Lottie JSON)
-	if (isLottieBuffer(buffer)) {
-		let wasBuffer = buffer
-		// Raw Lottie JSON (starts with '{') must be gzipped to produce valid WAS
-		if (buffer[0] === 0x7b) {
-			logger?.trace('Raw Lottie JSON detected, gzip-compressing to WAS format')
-			wasBuffer = gzipSync(buffer) as Buffer
-		}
-
-		logger?.trace('Input is Lottie/WAS format')
-		return { webpBuffer: wasBuffer, isAnimated: true, isLottie: true }
+	if (isWasBuffer(buffer)) {
+		logger?.trace('Input is WAS format')
+		return { webpBuffer: buffer, isAnimated: true, isLottie: true }
 	}
 
 	// Se já é WebP, preserva o buffer original (mantém EXIF e animações)
