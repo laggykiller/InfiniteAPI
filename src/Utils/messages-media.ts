@@ -43,14 +43,16 @@ const getTmpFilesDirectory = () => tmpdir()
  * @returns Object with sharp or jimp property, or throws if neither available
  */
 export const getImageProcessingLibrary = async () => {
-	//@ts-ignore
+	// @ts-ignore
 	const [jimp, sharp] = await Promise.all([import('jimp').catch(() => {}), import('sharp').catch(() => {})])
 
-	if (sharp) {
+	// @ts-ignore
+	if (sharp && typeof sharp.default === 'function') {
 		return { sharp }
 	}
 
-	if (jimp) {
+	// @ts-ignore
+	if (jimp && typeof jimp.Jimp === 'function') {
 		return { jimp }
 	}
 

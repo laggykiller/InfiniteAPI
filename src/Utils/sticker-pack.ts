@@ -34,6 +34,15 @@ export const isWebPBuffer = (buffer: Buffer): boolean => {
 	return riffHeader === 'RIFF' && webpHeader === 'WEBP'
 }
 
+export const isPNGBuffer = (buffer: Buffer): boolean => {
+	if (buffer.length < 8) return false
+
+	// Verifica magic bytes
+	const pngHeader = buffer.toString('ascii', 0, 8)
+
+	return pngHeader === '\x89PNG\r\n\x1a\n'
+}
+
 /**
  * Detecta se um WebP é animado através da análise de chunks
  *
@@ -683,17 +692,22 @@ export const prepareStickerPackMessage = async (
 
 		// Tray icon uses PNG format, 96x96 pixels (official client standard)
 		const lib = await getImageProcessingLibrary()
-		if (!lib?.sharp) {
-			throw new Boom('Sharp library is required for cover/tray icon processing. Install with: yarn add sharp', {
-				statusCode: 400
-			})
+		if (lib?.sharp) {
+			coverWebP = await lib.sharp
+				.default(coverBuffer)
+				.resize(96, 96, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } })
+				.png()
+				.toBuffer();
+		}
+		else if (lib?.jimp) {
+			coverWebP = await (await lib.jimp.Jimp.read(coverBuffer))
+				.contain({ w: 96, h: 96, mode: lib.jimp.ResizeStrategy.BILINEAR })
+				.getBuffer("image/png");
+		}
+		else {
+			throw new Boom("No image processing library available", { statusCode: 400 });
 		}
 
-		coverWebP = await lib.sharp
-			.default(coverBuffer)
-			.resize(96, 96, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } })
-			.png()
-			.toBuffer()
 
 		coverFileName = `${stickerPackId}.png`
 		stickerData[coverFileName] = [new Uint8Array(coverWebP), { level: 0 as 0 }]
